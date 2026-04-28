@@ -34,6 +34,9 @@ Where:
 ### Why Median?
 Unlike the Mean (average), the **Median** is robust to outliers. If a whale has already appeared in the last 24 minutes, a mean-based calculation would be skewed upwards, making it harder to detect the *next* whale. The median maintains a stable baseline of "normal" retail activity.
 
+## Animation
+<img width="1436" height="720" alt="Recording 2026-04-28 160142 (online-video-cutter com)" src="https://github.com/user-attachments/assets/a61b6c87-33a8-41b4-9157-2ec2b56dc066" />
+
 ## Screenshots
 - BTCUSDT
 <img width="1794" height="1072" alt="Screenshot_28-4-2026_154510_localhost" src="https://github.com/user-attachments/assets/4dad65ac-f5da-456d-83dc-e22b12302659" />
