@@ -35,6 +35,15 @@ Where:
 Unlike the Mean (average), the **Median** is robust to outliers. If a whale has already appeared in the last 24 minutes, a mean-based calculation would be skewed upwards, making it harder to detect the *next* whale. The median maintains a stable baseline of "normal" retail activity.
 
 ## Screenshots
+- BTCUSDT
+<img width="1794" height="1072" alt="Screenshot_28-4-2026_154510_localhost" src="https://github.com/user-attachments/assets/4dad65ac-f5da-456d-83dc-e22b12302659" />
+
+- ETHUSDT
+<img width="1794" height="889" alt="Screenshot_28-4-2026_154523_localhost" src="https://github.com/user-attachments/assets/3b54d7e3-01cc-4475-9ca6-bb3def43f109" />
+
+- SOLUSDT
+<img width="1794" height="925" alt="Screenshot_28-4-2026_154444_localhost" src="https://github.com/user-attachments/assets/983e63dc-ef6e-4b89-81b3-bd911bd9c256" />
+
 
 ---
 
