@@ -44,7 +44,7 @@ function initStream() {
         const currentPrice = parseFloat(k.c);
         const livePriceEl = document.getElementById('livePriceDisplay');
         livePriceEl.textContent = `$${currentPrice.toLocaleString()}`;
-        livePriceEl.style.color = currentPrice >= parseFloat(k.o) ? 'var(--teal)' : 'var(--whale-red)';
+        livePriceEl.style.color = currentPrice >= parseFloat(k.o) ? 'var(--accent)' : 'var(--whale-red)';
 
         const currentPoint = {
             time: new Date(k.t).toLocaleTimeString(),
@@ -89,8 +89,8 @@ function renderChart(results) {
     const container = document.getElementById('dual-chart');
     container.innerHTML = '';
     const w = container.clientWidth;
-    const h = 550;
-    const margin = { top: 20, right: 20, bottom: 20, left: 60 };
+    const h = 630;
+    const margin = { top: 20, right: 20, bottom: 48, left: 60 };
     const chartHeight = (h - 100);
 
     const svg = d3.select("#dual-chart").append("svg").attr("width", w).attr("height", h);
@@ -106,7 +106,7 @@ function renderChart(results) {
         .domain([d3.min(dataPoints, d => d.low), d3.max(dataPoints, d => d.high)])
         .range([chartHeight * 0.7, margin.top]);
 
-    // Volume Scale (Bottom 30%)
+    // Volume Scale (Bottom 30%) — leave room for timestamp axis
     const yVol = d3.scaleLinear()
         .domain([0, d3.max(results, d => d.volume)])
         .range([h - margin.bottom, chartHeight * 0.75]);
@@ -133,19 +133,79 @@ function renderChart(results) {
         .attr("fill", d => d.close >= d.open ? "var(--teal)" : "var(--whale-red)")
         .attr("opacity", 0.8);
 
+    // --- DRAW VOLUME LINE ---
+    const volumeLine = d3.line()
+        .x((d, i) => x(i) + x.bandwidth() / 2)
+        .y(d => yVol(d.volume))
+        .curve(d3.curveMonotoneX);
+
+    svg.append("path")
+        .datum(results)
+        .attr("fill", "none")
+        .attr("stroke", "var(--cyan)")
+        .attr("stroke-width", 1.5)
+        .attr("stroke-opacity", 0.5)
+        .attr("d", volumeLine);
+
     // --- DRAW VOLUME BUBBLES ---
     svg.selectAll(".bubble")
         .data(results)
         .enter().append("circle")
         .attr("cx", (d, i) => x(i) + x.bandwidth() / 2)
         .attr("cy", d => yVol(d.volume))
-        .attr("r", d => d.is_whale ? 12 : 3)
+        .attr("r", d => d.is_whale ? 12 : 4)
         .attr("fill", d => {
             if (d.severity === 'blue_whale') return 'var(--whale-orange)';
             if (d.is_whale) return 'var(--whale-red)';
             return 'var(--cyan)';
         })
-        .attr("opacity", d => d.is_whale ? 1 : 0.2);
+        .attr("stroke", d => d.is_whale ? (d.severity === 'blue_whale' ? 'var(--whale-orange)' : 'var(--whale-red)') : 'none')
+        .attr("stroke-width", d => d.is_whale ? 1.5 : 0)
+        .attr("stroke-opacity", 0.4)
+        .attr("opacity", d => d.is_whale ? 1 : 0.6);
+
+    // --- DRAW TIMESTAMP AXIS ---
+    // Show a tick every N candles to avoid crowding
+    const tickEvery = Math.ceil(dataPoints.length / 10);
+    const tickIndices = dataPoints
+        .map((d, i) => i)
+        .filter(i => i % tickEvery === 0 || i === dataPoints.length - 1);
+
+    const axisY = h - margin.bottom + 10;
+
+    // Axis baseline
+    svg.append("line")
+        .attr("x1", margin.left)
+        .attr("x2", w - margin.right)
+        .attr("y1", h - margin.bottom + 2)
+        .attr("y2", h - margin.bottom + 2)
+        .attr("stroke", "var(--border-bright)")
+        .attr("stroke-width", 1);
+
+    // Tick marks + labels
+    tickIndices.forEach(i => {
+        const cx = x(i) + x.bandwidth() / 2;
+        const label = dataPoints[i].time;
+
+        // Short tick
+        svg.append("line")
+            .attr("x1", cx).attr("x2", cx)
+            .attr("y1", h - margin.bottom + 2)
+            .attr("y2", h - margin.bottom + 7)
+            .attr("stroke", "var(--border-bright)")
+            .attr("stroke-width", 1);
+
+        // Timestamp text
+        svg.append("text")
+            .attr("x", cx)
+            .attr("y", axisY + 16)
+            .attr("text-anchor", "middle")
+            .attr("font-family", "'Share Tech Mono', monospace")
+            .attr("font-size", "9px")
+            .attr("fill", "var(--text-secondary)")
+            .attr("letter-spacing", "0.04em")
+            .text(label);
+    });
 
     updateTable(results);
 }
