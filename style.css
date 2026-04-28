@@ -559,3 +559,17 @@ input[type="range"].ef-slider::-webkit-slider-thumb:hover {
   .ef-main { padding: 1rem; }
   .ef-stat-value { font-size: 1.2rem; }
 }
+
+/* Add this to your style.css to ensure the chart container is visible */
+#dual-chart {
+    width: 100%;
+    min-height: 500px;
+    display: block;
+    background: rgba(0,0,0,0.2); /* Dark background to see the area */
+    position: relative;
+}
+
+svg {
+    display: block;
+    overflow: visible; /* Ensure bubbles near the edge show up */
+}
