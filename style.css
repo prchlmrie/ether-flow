@@ -1,0 +1,561 @@
+/* ═══════════════════════════════════════════
+   EtherFlow — Crypto Whale Tracker
+   Dark Terminal / Bloomberg-style aesthetic
+═══════════════════════════════════════════ */
+
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap');
+
+/* ── CSS Variables ───────────────────────── */
+:root {
+  --bg-void:        #050508;
+  --bg-panel:       #0c0d13;
+  --bg-card:        #101219;
+  --bg-input:       #090a10;
+  --border:         #1e2235;
+  --border-bright:  #2a3050;
+
+  --cyan:           #00e5ff;
+  --cyan-dim:       #00b8cc;
+  --cyan-glow:      rgba(0, 229, 255, 0.15);
+  --teal:           #00bfa5;
+
+  --whale-red:      #ff1744;
+  --whale-orange:   #ff6d00;
+  --dolphin-yellow: #ffd600;
+
+  --text-primary:   #e8eaf0;
+  --text-secondary: #6b7591;
+  --text-muted:     #3a4060;
+
+  --font-mono:      'Share Tech Mono', monospace;
+  --font-display:   'Rajdhani', sans-serif;
+  --font-data:      'Space Mono', monospace;
+}
+
+/* ── Base ────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  background: var(--bg-void);
+  color: var(--text-primary);
+  font-family: var(--font-display);
+  font-size: 16px;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* Scanline overlay */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0,0,0,0.03) 2px,
+    rgba(0,0,0,0.03) 4px
+  );
+  pointer-events: none;
+  z-index: 9999;
+}
+
+/* ── Navbar ──────────────────────────────── */
+.ef-navbar {
+  background: var(--bg-panel);
+  border-bottom: 1px solid var(--border);
+  padding: 0.75rem 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  backdrop-filter: blur(10px);
+}
+
+.ef-logo {
+  font-family: var(--font-display);
+  font-size: 1.4rem;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  color: var(--cyan);
+  text-transform: uppercase;
+  text-shadow: 0 0 20px var(--cyan-glow);
+}
+
+.ef-logo span {
+  color: var(--text-secondary);
+  font-weight: 400;
+}
+
+.ef-status {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.ef-status-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--teal);
+  animation: pulse-dot 2s infinite;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(0,191,165,0.4); }
+  50% { opacity: 0.6; box-shadow: 0 0 0 4px rgba(0,191,165,0); }
+}
+
+/* ── Layout ──────────────────────────────── */
+.ef-main {
+  padding: 1.5rem;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* ── Stat Cards ──────────────────────────── */
+.ef-stat-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.ef-stat {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 1rem 1.25rem;
+  position: relative;
+  overflow: hidden;
+  transition: border-color 0.2s;
+}
+
+.ef-stat::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0;
+  width: 3px; height: 100%;
+  background: var(--cyan);
+}
+
+.ef-stat:hover { border-color: var(--border-bright); }
+
+.ef-stat-label {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  margin-bottom: 0.4rem;
+}
+
+.ef-stat-value {
+  font-family: var(--font-data);
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--cyan);
+  line-height: 1;
+}
+
+.ef-stat-value.whale { color: var(--whale-red); }
+.ef-stat-value.normal { color: var(--teal); }
+
+/* ── Input Panel ─────────────────────────── */
+.ef-panel {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+.ef-panel-title {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  margin-bottom: 1rem;
+  padding-bottom: 0.6rem;
+  border-bottom: 1px solid var(--border);
+}
+
+/* File Upload Zone */
+.ef-upload-zone {
+  border: 1px dashed var(--border-bright);
+  border-radius: 4px;
+  padding: 1.5rem;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: var(--bg-input);
+  margin-bottom: 0.75rem;
+}
+
+.ef-upload-zone:hover,
+.ef-upload-zone.drag-over {
+  border-color: var(--cyan-dim);
+  background: rgba(0, 229, 255, 0.03);
+}
+
+.ef-upload-zone input[type="file"] { display: none; }
+
+.ef-upload-icon {
+  font-size: 1.5rem;
+  margin-bottom: 0.5rem;
+  color: var(--text-secondary);
+}
+
+.ef-upload-label {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+}
+
+.ef-upload-label strong { color: var(--cyan); }
+
+/* Textarea */
+.ef-textarea {
+  width: 100%;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  line-height: 1.7;
+  padding: 0.75rem;
+  resize: vertical;
+  min-height: 120px;
+  transition: border-color 0.2s;
+  outline: none;
+}
+
+.ef-textarea:focus { border-color: var(--cyan-dim); }
+.ef-textarea::placeholder { color: var(--text-muted); }
+
+/* Slider */
+.ef-slider-wrap {
+  margin-top: 1rem;
+}
+
+.ef-slider-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 0.5rem;
+}
+
+.ef-slider-title {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+.ef-slider-val {
+  font-family: var(--font-data);
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--cyan);
+}
+
+.ef-slider-label {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  color: var(--dolphin-yellow);
+  margin-left: 0.4rem;
+}
+
+input[type="range"].ef-slider {
+  -webkit-appearance: none;
+  width: 100%;
+  height: 3px;
+  background: var(--border-bright);
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer;
+}
+
+input[type="range"].ef-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px; height: 14px;
+  background: var(--cyan);
+  border-radius: 50%;
+  box-shadow: 0 0 10px var(--cyan-glow);
+  transition: transform 0.15s;
+}
+
+input[type="range"].ef-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.3);
+}
+
+.ef-slider-ticks {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 0.3rem;
+}
+
+.ef-slider-tick {
+  font-family: var(--font-mono);
+  font-size: 0.55rem;
+  color: var(--text-muted);
+}
+
+/* Run Button */
+.ef-btn {
+  font-family: var(--font-display);
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  background: transparent;
+  border: 1px solid var(--cyan);
+  color: var(--cyan);
+  padding: 0.6rem 2rem;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+  overflow: hidden;
+  margin-top: 1rem;
+  width: 100%;
+}
+
+.ef-btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--cyan);
+  transform: translateX(-100%);
+  transition: transform 0.2s;
+  z-index: -1;
+}
+
+.ef-btn:hover {
+  color: var(--bg-void);
+  box-shadow: 0 0 20px var(--cyan-glow);
+}
+
+.ef-btn:hover::before { transform: translateX(0); }
+.ef-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+/* ── Chart Container ─────────────────────── */
+.ef-chart-panel {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 1.25rem;
+  margin-bottom: 1.5rem;
+  min-height: 420px;
+  position: relative;
+}
+
+#chart {
+  width: 100%;
+  overflow: visible;
+}
+
+/* Loading Spinner */
+.ef-spinner {
+  display: none;
+  position: absolute;
+  inset: 0;
+  background: rgba(5,5,8,0.85);
+  border-radius: 4px;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 0.75rem;
+  z-index: 10;
+}
+
+.ef-spinner.active { display: flex; }
+
+.ef-spinner-ring {
+  width: 36px; height: 36px;
+  border: 2px solid var(--border-bright);
+  border-top-color: var(--cyan);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.ef-spinner-text {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  color: var(--text-secondary);
+  letter-spacing: 0.1em;
+}
+
+/* ── Tooltip ─────────────────────────────── */
+.ef-tooltip {
+  position: fixed;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-bright);
+  border-radius: 4px;
+  padding: 0.6rem 0.8rem;
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  color: var(--text-primary);
+  pointer-events: none;
+  z-index: 1000;
+  opacity: 0;
+  transition: opacity 0.15s;
+  max-width: 220px;
+  line-height: 1.8;
+}
+
+.ef-tooltip.visible { opacity: 1; }
+
+.ef-tooltip-title {
+  font-family: var(--font-display);
+  font-size: 0.8rem;
+  font-weight: 700;
+  margin-bottom: 0.25rem;
+}
+
+.ef-tooltip-whale { color: var(--whale-red); }
+.ef-tooltip-dolphin { color: var(--dolphin-yellow); }
+.ef-tooltip-normal { color: var(--teal); }
+
+.ef-tooltip-row { display: flex; justify-content: space-between; gap: 1rem; }
+.ef-tooltip-key { color: var(--text-secondary); }
+.ef-tooltip-val { color: var(--cyan); }
+
+/* ── Alert / Error ───────────────────────── */
+.ef-alert {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  background: rgba(255, 23, 68, 0.08);
+  border: 1px solid rgba(255, 23, 68, 0.3);
+  color: #ff8a80;
+  border-radius: 4px;
+  padding: 0.6rem 0.9rem;
+  margin-top: 0.75rem;
+  display: none;
+}
+
+.ef-alert.active { display: block; }
+
+/* ── Legend ──────────────────────────────── */
+.ef-legend {
+  display: flex;
+  gap: 1.5rem;
+  margin-top: 0.75rem;
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  color: var(--text-secondary);
+  flex-wrap: wrap;
+}
+
+.ef-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.ef-legend-dot {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* ── D3 SVG overrides ────────────────────── */
+.ef-axis text {
+  font-family: var(--font-mono) !important;
+  font-size: 0.58rem !important;
+  fill: var(--text-secondary) !important;
+}
+
+.ef-axis line, .ef-axis path {
+  stroke: var(--border) !important;
+}
+
+.ef-gridlines line {
+  stroke: var(--border) !important;
+  stroke-dasharray: 2 4 !important;
+}
+
+/* Bubble animations */
+.bubble-whale {
+  animation: whale-pulse 2.5s ease-in-out infinite;
+}
+
+@keyframes whale-pulse {
+  0%, 100% { opacity: 0.55; }
+  50%       { opacity: 0.85; }
+}
+
+/* ── Results Table ───────────────────────── */
+.ef-table-wrap {
+  overflow-x: auto;
+}
+
+.ef-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+}
+
+.ef-table th {
+  text-align: left;
+  padding: 0.5rem 0.75rem;
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--border);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-weight: 400;
+}
+
+.ef-table td {
+  padding: 0.45rem 0.75rem;
+  border-bottom: 1px solid rgba(30,34,53,0.5);
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+.ef-table tr:hover td { background: rgba(255,255,255,0.02); }
+.ef-table .row-whale td { color: var(--whale-red); }
+.ef-table .row-dolphin td { color: var(--dolphin-yellow); }
+
+.badge-whale {
+  background: rgba(255,23,68,0.15);
+  color: var(--whale-red);
+  border: 1px solid rgba(255,23,68,0.3);
+  padding: 0.1rem 0.5rem;
+  border-radius: 2px;
+  font-size: 0.6rem;
+}
+
+.badge-dolphin {
+  background: rgba(255,214,0,0.1);
+  color: var(--dolphin-yellow);
+  border: 1px solid rgba(255,214,0,0.25);
+  padding: 0.1rem 0.5rem;
+  border-radius: 2px;
+  font-size: 0.6rem;
+}
+
+.badge-blue-whale {
+  background: rgba(255,109,0,0.12);
+  color: var(--whale-orange);
+  border: 1px solid rgba(255,109,0,0.3);
+  padding: 0.1rem 0.5rem;
+  border-radius: 2px;
+  font-size: 0.6rem;
+}
+
+/* ── Responsive ──────────────────────────── */
+@media (max-width: 768px) {
+  .ef-main { padding: 1rem; }
+  .ef-stat-value { font-size: 1.2rem; }
+}
