@@ -1,0 +1,6 @@
+services:
+  - type: web
+    name: ether-flow
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /
