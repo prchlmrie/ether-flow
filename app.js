@@ -6,22 +6,43 @@ const MAX_POINTS = 40;
 const startBtn = document.getElementById('startBtn');
 const multiplierSlider = document.getElementById('multiplierSlider');
 
+function mapKlines(data) {
+    return data.map(d => ({
+        time: new Date(d[0]).toLocaleTimeString(),
+        open: parseFloat(d[1]),
+        high: parseFloat(d[2]),
+        low: parseFloat(d[3]),
+        close: parseFloat(d[4]),
+        volume: parseFloat(d[5]) * parseFloat(d[4]),
+        isClosed: true
+    }));
+}
+
 async function fetchHistory(s, i) {
-    const url = `https://api.binance.com/api/v3/klines?symbol=${s.toUpperCase()}&interval=${i}&limit=${MAX_POINTS}`;
-    try {
-        const res = await fetch(url);
-        const data = await res.json();
-        dataPoints = data.map(d => ({
-            time: new Date(d[0]).toLocaleTimeString(),
-            open: parseFloat(d[1]),
-            high: parseFloat(d[2]),
-            low: parseFloat(d[3]),
-            close: parseFloat(d[4]),
-            volume: parseFloat(d[5]) * parseFloat(d[4]),
-            isClosed: true
-        }));
-        analyzeAnomalies();
-    } catch (err) { console.error("History fail:", err); }
+    const params = new URLSearchParams({
+        symbol: s.toUpperCase(),
+        interval: i,
+        limit: String(MAX_POINTS)
+    });
+    const urls = [
+        `/api/klines?${params}`,
+        `https://api.binance.com/api/v3/klines?${params}`
+    ];
+
+    for (const url of urls) {
+        try {
+            const res = await fetch(url);
+            if (!res.ok) continue;
+            const data = await res.json();
+            if (!Array.isArray(data)) continue;
+            dataPoints = mapKlines(data);
+            analyzeAnomalies();
+            return;
+        } catch (_) { /* try next source */ }
+    }
+
+    console.error('History fail: unable to reach Binance');
+    document.getElementById('connectionStatus').textContent = 'HISTORY FETCH FAILED';
 }
 
 function initStream() {
@@ -35,6 +56,21 @@ function initStream() {
     fetchHistory(symbol, interval);
 
     socket = new WebSocket(`wss://stream.binance.com:9443/ws/${symbol.toLowerCase()}@kline_${interval}`);
+
+    socket.onopen = () => {
+        document.getElementById('connectionStatus').textContent = 'LIVE';
+        document.getElementById('statusDot').style.background = 'var(--accent)';
+    };
+
+    socket.onerror = () => {
+        document.getElementById('connectionStatus').textContent = 'STREAM ERROR';
+        document.getElementById('statusDot').style.background = 'var(--whale-red)';
+    };
+
+    socket.onclose = () => {
+        document.getElementById('connectionStatus').textContent = 'DISCONNECTED';
+        document.getElementById('statusDot').style.background = 'var(--text-secondary)';
+    };
 
     socket.onmessage = (event) => {
         const msg = JSON.parse(event.data);
