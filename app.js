@@ -2,9 +2,22 @@
 
 let socket = null;
 let dataPoints = [];
-const MAX_POINTS = 40; 
+const MAX_POINTS = 40;
+const BINANCE_HOSTS = [
+    'https://api.binance.com',
+    'https://api1.binance.com',
+    'https://api2.binance.com',
+    'https://api3.binance.com'
+];
 const startBtn = document.getElementById('startBtn');
 const multiplierSlider = document.getElementById('multiplierSlider');
+const connectionStatus = document.getElementById('connectionStatus');
+const statusDot = document.getElementById('statusDot');
+
+if (window.location.protocol === 'file:') {
+    connectionStatus.textContent = 'RUN npm run dev';
+    statusDot.style.background = 'var(--whale-red)';
+}
 
 function mapKlines(data) {
     return data.map(d => ({
@@ -18,18 +31,23 @@ function mapKlines(data) {
     }));
 }
 
-async function fetchHistory(s, i) {
+function klinesUrls(symbol, interval) {
     const params = new URLSearchParams({
-        symbol: s.toUpperCase(),
-        interval: i,
+        symbol: symbol.toUpperCase(),
+        interval,
         limit: String(MAX_POINTS)
     });
-    const urls = [
-        `/api/klines?${params}`,
-        `https://api.binance.com/api/v3/klines?${params}`
+    const query = params.toString();
+    return [
+        `/api/klines?${query}`,
+        ...BINANCE_HOSTS.map(host => `${host}/api/v3/klines?${query}`)
     ];
+}
 
-    for (const url of urls) {
+async function fetchHistory(s, i) {
+    connectionStatus.textContent = 'LOADING HISTORY...';
+
+    for (const url of klinesUrls(s, i)) {
         try {
             const res = await fetch(url);
             if (!res.ok) continue;
@@ -38,11 +56,14 @@ async function fetchHistory(s, i) {
             dataPoints = mapKlines(data);
             analyzeAnomalies();
             return;
-        } catch (_) { /* try next source */ }
+        } catch (err) {
+            console.warn('Klines source failed:', url, err);
+        }
     }
 
     console.error('History fail: unable to reach Binance');
-    document.getElementById('connectionStatus').textContent = 'HISTORY FETCH FAILED';
+    connectionStatus.textContent = 'HISTORY FETCH FAILED';
+    statusDot.style.background = 'var(--whale-red)';
 }
 
 function initStream() {
@@ -50,26 +71,29 @@ function initStream() {
     const interval = document.getElementById('intervalInput').value;
 
     if (socket) socket.close();
-    document.getElementById('assetLabel').textContent = symbol;
-    document.getElementById('connectionStatus').textContent = "SYNCING...";
-    
+    document.getElementById('assetLabel').textContent = symbol.replace('USDT', '');
+    connectionStatus.textContent = 'SYNCING...';
+    statusDot.style.background = 'var(--text-secondary)';
+
     fetchHistory(symbol, interval);
 
     socket = new WebSocket(`wss://stream.binance.com:9443/ws/${symbol.toLowerCase()}@kline_${interval}`);
 
     socket.onopen = () => {
-        document.getElementById('connectionStatus').textContent = 'LIVE';
-        document.getElementById('statusDot').style.background = 'var(--accent)';
+        connectionStatus.textContent = 'LIVE';
+        statusDot.style.background = 'var(--accent)';
     };
 
     socket.onerror = () => {
-        document.getElementById('connectionStatus').textContent = 'STREAM ERROR';
-        document.getElementById('statusDot').style.background = 'var(--whale-red)';
+        connectionStatus.textContent = 'STREAM ERROR';
+        statusDot.style.background = 'var(--whale-red)';
     };
 
     socket.onclose = () => {
-        document.getElementById('connectionStatus').textContent = 'DISCONNECTED';
-        document.getElementById('statusDot').style.background = 'var(--text-secondary)';
+        if (connectionStatus.textContent === 'LIVE') {
+            connectionStatus.textContent = 'DISCONNECTED';
+        }
+        statusDot.style.background = 'var(--text-secondary)';
     };
 
     socket.onmessage = (event) => {
@@ -299,5 +323,10 @@ function updateTable(results) {
         </tr>
     `).join('');
 }
+
+multiplierSlider.addEventListener('input', () => {
+    document.getElementById('sliderVal').textContent = multiplierSlider.value;
+    if (dataPoints.length >= 5) analyzeAnomalies();
+});
 
 startBtn.addEventListener('click', initStream);

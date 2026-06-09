@@ -1,5 +1,29 @@
 const ALLOWED_INTERVALS = new Set(['1s', '1m', '5m', '1h']);
 const SYMBOL_RE = /^[A-Z0-9]{5,20}$/;
+const BINANCE_HOSTS = [
+    'https://api.binance.com',
+    'https://api1.binance.com',
+    'https://api2.binance.com',
+    'https://api3.binance.com'
+];
+
+async function fetchFromBinance(symbol, interval, limit) {
+    for (const host of BINANCE_HOSTS) {
+        try {
+            const url = new URL(`${host}/api/v3/klines`);
+            url.searchParams.set('symbol', symbol);
+            url.searchParams.set('interval', interval);
+            url.searchParams.set('limit', String(limit));
+
+            const response = await fetch(url);
+            const data = await response.json();
+            if (response.ok && Array.isArray(data)) {
+                return data;
+            }
+        } catch (_) { /* try next host */ }
+    }
+    return null;
+}
 
 module.exports = async (req, res) => {
     if (req.method !== 'GET') {
@@ -14,22 +38,11 @@ module.exports = async (req, res) => {
         return res.status(400).json({ error: 'Invalid symbol or interval' });
     }
 
-    try {
-        const url = new URL('https://api.binance.com/api/v3/klines');
-        url.searchParams.set('symbol', symbol);
-        url.searchParams.set('interval', interval);
-        url.searchParams.set('limit', String(limit));
-
-        const response = await fetch(url);
-        const data = await response.json();
-
-        if (!response.ok) {
-            return res.status(response.status).json(data);
-        }
-
-        res.setHeader('Cache-Control', 's-maxage=5, stale-while-revalidate');
-        return res.status(200).json(data);
-    } catch {
+    const data = await fetchFromBinance(symbol, interval, limit);
+    if (!data) {
         return res.status(502).json({ error: 'Binance API unavailable' });
     }
+
+    res.setHeader('Cache-Control', 's-maxage=5, stale-while-revalidate');
+    return res.status(200).json(data);
 };
