@@ -73,16 +73,57 @@ function initStream() {
     };
 }
 
-async function analyzeAnomalies() {
-    if (dataPoints.length < 5) return;
-    const rawData = dataPoints.map(d => `${d.time},${d.volume}`).join('\n');
-    const formData = new FormData();
-    formData.append('data', rawData);
-    formData.append('multiplier', multiplierSlider.value);
+function median(arr) {
+    if (!arr.length) return 0;
+    const sorted = [...arr].sort((a, b) => a - b);
+    const mid = Math.floor(sorted.length / 2);
+    return sorted.length % 2 === 0
+        ? (sorted[mid - 1] + sorted[mid]) / 2
+        : sorted[mid];
+}
 
-    const res = await fetch('detect.php', { method: 'POST', body: formData });
-    const json = await res.json();
-    renderChart(json.results);
+function detectAnomalies(points, multiplier) {
+    const WINDOW = 24;
+    const volumes = points.map(d => d.volume);
+    const results = [];
+
+    for (let i = 0; i < volumes.length; i++) {
+        const start = Math.max(0, i - WINDOW);
+        let windowVols = volumes.slice(start, i);
+        if (!windowVols.length) windowVols = [volumes[i]];
+
+        const winMedian = median(windowVols);
+        const isWhale = volumes[i] >= winMedian * multiplier;
+
+        let severity = 'normal';
+        if (isWhale) {
+            const ratio = volumes[i] / (winMedian || 1);
+            if (ratio >= 8) severity = 'blue_whale';
+            else if (ratio >= 5) severity = 'whale';
+            else severity = 'dolphin';
+        }
+
+        results.push({
+            index: i,
+            timestamp: points[i].time,
+            volume: volumes[i],
+            window_median: winMedian,
+            is_whale: isWhale,
+            severity,
+            deviation_pct: winMedian > 0
+                ? Math.round(((volumes[i] - winMedian) / winMedian) * 10000) / 100
+                : 0,
+            z_score: 0
+        });
+    }
+
+    return results;
+}
+
+function analyzeAnomalies() {
+    if (dataPoints.length < 5) return;
+    const multiplier = parseFloat(multiplierSlider.value);
+    renderChart(detectAnomalies(dataPoints, multiplier));
 }
 
 function renderChart(results) {
